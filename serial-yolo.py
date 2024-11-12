@@ -8,13 +8,18 @@ def detect_cats(filename):
         print("Error: Could not load image for YOLO detection.")
         return
 
-    # Perform cat detection using YOLO
     results = model(img)
 
     # Display results
     for result in results:
-        # You can filter out specific classes if needed (e.g., cat class)
-        print(result.boxes)
+        # Save detected image
+        for box in result.boxes:
+            class_id = int(box.cls)  # Get the class ID for the detected box
+            class_name = result.names[class_id]  # Map ID to class name using the 'names' dictionary
+            print(class_name)
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        cv2.imwrite('detected_' + filename, img)
 
 def receive_image(filename='frame.jpeg'):
     # Flush any old data in the serial buffer
@@ -34,7 +39,7 @@ def receive_image(filename='frame.jpeg'):
                 if len(image_data) > 0 and image_data[-1] == 0xFF and byte == b'\xD8':
                     receiving_image = True
                     image_data = bytearray([0xFF, 0xD8])
-                    print("JPEG Header Detected, Image transmission started...")
+                    #print("JPEG Header Detected, Image transmission started...")
                 else:
                     image_data.append(ord(byte))
 
@@ -43,18 +48,17 @@ def receive_image(filename='frame.jpeg'):
                 
                 # Check for the end of JPEG (0xFF, 0xD9)
                 if len(image_data) > 1 and image_data[-2] == 0xFF and image_data[-1] == 0xD9:
-                    print("JPEG End Header Detected, Image transmission ended.")
+                    #print("JPEG End Header Detected, Image transmission ended.")
                     break
 
     # Save the image data to a file
     with open(filename, 'wb') as f:
         f.write(image_data)
-    print(f"Image saved as {filename}")
+    print(f"Image saved")
     detect_cats(filename)
     receive_image()
-    
-    
+
     
 model = YOLO('catdetect.pt')
-ser = serial.Serial('COM3', 115200, timeout=1)
+ser = serial.Serial('/dev/ttyACM0', 115200, timeout=1)
 receive_image()

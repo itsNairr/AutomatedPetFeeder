@@ -1,7 +1,7 @@
 import serial
 
 # Set up serial connection (adjust COM port and baud rate as needed)
-ser = serial.Serial('COM3', 115200, timeout=1)
+ser = serial.Serial('/dev/ttyACM0', 115200, timeout=1)
 
 def receive_image(filename='captured_image.jpeg'):
     # Flush any old data in the serial buffer
