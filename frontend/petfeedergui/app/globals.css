@@ -41,3 +41,7 @@
   animation: green-pulse 2s infinite;
   color: green;
 }
+
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1); /* Inverts the color, making it white on dark backgrounds */
+}
