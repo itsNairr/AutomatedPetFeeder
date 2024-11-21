@@ -5,10 +5,10 @@ export default function Home() {
 
   const [status, setStatus] = useState("Disconnected");
   const [breed, setBreed] = useState(null);
-  const [kible, setKible] = useState(null);
+  const [kibble, setKibble] = useState(null);
   const [time, setTime] = useState(null);
   const [data, setData] = useState(null);
-  const [val, setVal] = useState("Hey!")
+  const [val, setVal] = useState("Welcome! Let's feed your Cat!")
   
   useEffect(() => {
     const getData = async () => {
@@ -32,20 +32,23 @@ export default function Home() {
     event.preventDefault();
     document.getElementById("feed").style.display = "none";
     setVal("Processing...");
-    console.log(JSON.stringify(models));
     try {
       const res = await fetch("http://127.0.0.1:5000/upload", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ breed, kible, time }),
+        body: JSON.stringify({ breed, kibble, time }),
       });
       const data = await res.json();
       console.log(data.message);
       setVal(data.message);
+      setBreed(null);
+      setKibble(null);
+      setTime(null);
     } catch (error) {
       console.log(error);
+      setVal("Error! Please try again.");
     }
   };
 
@@ -69,7 +72,7 @@ export default function Home() {
         </div>
         <form>
           <div className="flex flex-col items-center">
-            <div className="text-[25px] font-sofia font-bold mt-5">Feed Your Cat!</div>
+            <div className="text-[25px] font-sofia font-bold mt-5">{val}</div>
             <label className="mt-5">Select the cat breed:</label>
             <select
                 id="breed"
@@ -77,12 +80,13 @@ export default function Home() {
                 required
                 className="bg-transparent text-center rounded-lg text-white mt-1"
                 onChange={(e) => setBreed(e.target.value)}
+                value={breed || ""}
               >
                 <option className="text-black bg-transparent" value="">Select</option>
-                <option className="text-black bg-transparent" value="3">Garfield</option>
-                <option className="text-black bg-transparent" value="6">Meow Meow</option>
-                <option className="text-black bg-transparent" value="9">Goatsy</option>
-                <option className="text-black bg-transparent" value="12">Angle</option>
+                <option className="text-black bg-transparent" value="Garfield">Garfield</option>
+                <option className="text-black bg-transparent" value="Meow Meow">Meow Meow</option>
+                <option className="text-black bg-transparent" value="Goatsy">Goatsy</option>
+                <option className="text-black bg-transparent" value="Angle">Angle</option>
               </select>
             {breed &&
             <>
@@ -91,9 +95,10 @@ export default function Home() {
               type="number"
               className="border-2 border-white w-[50%] h-[40px] bg-transparent text-center rounded-lg mt-1"
               required
-              onChange={(e) => setKible(e.target.value)}
+              onChange={(e) => setKibble(e.target.value)}
+              value={kibble || ""}
             />
-            {kible &&
+            {kibble &&
             <>
             <label className="mt-5">Select a time:</label>
             <input 
@@ -102,10 +107,11 @@ export default function Home() {
               required
               className="bg-transparent text-center rounded-lg text-white mt-1"
               onChange={(e) => setTime(e.target.value)}
+              value={time || ""}
               />
             </>
             }
-            {time && kible && breed && <button id="feed" onClick={handleSubmit} className="bg-[#b90e31] w-[50%] h-[40px] mt-5 rounded-lg">Feed</button>}
+            {time && kibble && breed && <button id="feed" onClick={handleSubmit} className="bg-[#b90e31] w-[50%] h-[40px] mt-5 rounded-lg">Feed</button>}
             </>
             }
           </div>

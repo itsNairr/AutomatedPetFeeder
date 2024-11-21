@@ -2,13 +2,14 @@ import threading
 import serial
 from ultralytics import YOLO
 import cv2
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, Response, json
 from flask_cors import CORS
 import time
 
 feedhash = {}
 
-# Initialize the Flask app
+subscribers = []  # List to keep track of subscribers
+
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
@@ -106,7 +107,22 @@ def upload():
     kibble = data.get('kibble')
     ftime = data.get('time')
     feedhash[ftime] = [breed, kibble]
-    return jsonify({'message': 'Data received'}), 200
+    print(feedhash)
+    notify_subscribers() 
+    return jsonify({'message': 'Data received! Feed another Cat!'}), 200
+
+@app.route('/stream')
+def stream():
+    def event_stream():
+        while True:
+            # Serialize `feedhash` as a JSON string with `json.dumps`
+            yield f"data: {json.dumps(feedhash)}\n\n"
+            time.sleep(1)  # Adjust as needed
+    return Response(event_stream(), content_type="text/event-stream")
+
+def notify_subscribers():
+    # Add a placeholder for every new update to notify
+    subscribers.append(True)
  
 if __name__ == '__main__':
     #start_receiver_thread()
