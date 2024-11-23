@@ -2,13 +2,12 @@ import threading
 import serial
 from ultralytics import YOLO
 import cv2
-from flask import Flask, jsonify, request, Response, json
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 import time
 
 feedhash = {}
-
-subscribers = []  # List to keep track of subscribers
+catshash = {}
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -99,30 +98,76 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 def home():
     return jsonify({'status': 'Connected'})
 
-@app.route('/upload', methods=['POST'])
-def upload():
+@app.route('/subscribe/cats', methods=['GET'])
+def subscribe_all_cats():
+    global catshash
+    return jsonify(catshash), 200
+
+@app.route('/subscribe/cats/<breed>', methods=['GET'])
+def subscribe_single_cat(breed):
+    global catshash
+    print(breed)
+    # Check if the breed exists in catshash
+    if breed not in catshash:
+        return jsonify({'message': f'Breed {breed} not found.'}), 404
+
+    return jsonify({breed: catshash[breed]}), 200
+
+
+@app.route('/upload/feed', methods=['POST'])
+def upload_feed():
     global breed, kibble, ftime
     data = request.get_json()
     breed = data.get('breed')
     kibble = data.get('kibble')
     ftime = data.get('time')
     feedhash[ftime] = [breed, kibble]
-    print(feedhash)
-    notify_subscribers() 
     return jsonify({'message': 'Data received! Feed another Cat!'}), 200
 
-@app.route('/stream')
-def stream():
-    def event_stream():
-        while True:
-            # Serialize `feedhash` as a JSON string with `json.dumps`
-            yield f"data: {json.dumps(feedhash)}\n\n"
-            time.sleep(1)  # Adjust as needed
-    return Response(event_stream(), content_type="text/event-stream")
+@app.route('/upload/cat', methods=['POST'])
+def upload_cat():
+    global catshash
+    data = request.get_json()
+    cat = data.get('cat')
+    breed = data.get('breed')
+    if breed in catshash:
+        return jsonify({'message': 'Cat of this breed already exists! Try again.'}), 409
+    else:
+        catshash[breed] = cat
+        print(catshash)
+        return jsonify({'message': 'Cat added! Redirecting to cats page...'}), 200
+    
+@app.route('/upload/cat/<breed>', methods=['PUT'])
+def edit_cat(breed):
+    global catshash
+    data = request.get_json()
 
-def notify_subscribers():
-    # Add a placeholder for every new update to notify
-    subscribers.append(True)
+    # Check if the breed exists
+    if breed not in catshash:
+        return jsonify({'message': 'Breed not found.'}), 404
+
+    # Extract new data
+    new_breed = data.get('breed')
+    new_name = data.get('cat')
+    # print(new_breed)
+    # print(breed)
+
+    if new_breed != breed and new_breed in catshash:
+        return jsonify({'message': 'Cat of this breed already exists! Try again.'}), 409
+    else:
+        catshash.pop(breed)
+        catshash[new_breed] = new_name
+        return jsonify({'message': 'Cat updated! Redirecting to cats page...'}), 200
+    
+@app.route('/delete/cat/<breed>', methods=['DELETE'])
+def delete_cat(breed):
+    global catshash
+    if breed in catshash:
+        catshash.pop(breed)
+        return jsonify({'message': 'Cat deleted! Redirecting to cats page...'}), 200
+    else:
+        return jsonify({'message': 'Breed not found.'}), 404
+
  
 if __name__ == '__main__':
     #start_receiver_thread()

@@ -33,10 +33,30 @@ function Upcoming() {
   }, []);
 
   return (
-    <div>
+    <>
+    <div className="flex flex-col items-center justify-between h-screen font-sofia text-[25px] bg-[#002452] text-white">
+      <div className="w-[100%] h-[20px] bg-[#F0B542]"></div>
       <h1>Upcoming Feed Times</h1>
-      <pre>{feedHash ? JSON.stringify(feedHash, null, 2) : "No data yet"}</pre>
+      {feedHash && Object.keys(feedHash).length > 0 ? (
+        <div>
+          {Object.entries(feedHash).map(([time, [catName, kibble]]) => (
+            <div key={time} className="my-2 flex flex-col w-[400px] justify-between">
+              <div className="flex flex-row">
+              <p><strong>Cat:</strong> {catName}</p>
+              </div>
+              <div className="flex flex-row justify-between">
+              <p><strong>Time:</strong> {time}</p>
+              <p><strong>Kibble:</strong> {kibble}</p>
+              </div>
+              <hr className="border-gray-500 my-2" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p>You have no upcoming feeding times!</p>
+      )}
     </div>
+  </>
   );
 }
 
