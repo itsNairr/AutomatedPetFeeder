@@ -6,7 +6,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import time
 
-feedhash = {}
+scheduleshash = {}
 catshash = {}
 
 app = Flask(__name__)
@@ -90,41 +90,102 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 #         else:
 #             print("Error: Could not load image for detection.")
 
-# def start_receiver_thread():
-#     thread = threading.Thread(target=receive_image, daemon=True)
-#     thread.start()
+# Background thread to update feeding statuses
+def update_feeding_status():
+    global scheduleshash
+    while True:
+        current_time = time.strftime("%H:%M")  
+        current_day = time.strftime("%A")  
+        print(f"Current time: {current_time}, Current day: {current_day}")
+        for cat, schedule in scheduleshash.items():
+            if current_day in schedule:  # Check if the current day exists in the schedule
+                for feeding in schedule[current_day]:
+                    if feeding["time"] <= current_time and feeding["status"] == "On Time":
+                        feeding["status"] = "Waiting for Cat"
+                    
+        print(scheduleshash)
+
+        time.sleep(30)  # Check every 30 seconds
+
+# Start the background thread
+threading.Thread(target=update_feeding_status, daemon=True).start()
 
 @app.route('/')
 def home():
     return jsonify({'status': 'Connected'})
 
-@app.route('/subscribe/cats', methods=['GET'])
+@app.route('/upload/schedule', methods=['POST']) #Upload a schedule
+def upload_schedule():
+    global scheduleshash
+    data = request.get_json()
+    name = data.get('name')
+    schedule = data.get('schedule')
+    if name in scheduleshash:
+        return jsonify({'message': 'Schedule for this cat already exists! Try again.'}), 409
+    else:
+        scheduleshash[name] = schedule
+        print(scheduleshash)
+        return jsonify({'message': 'Schedule added! Redirecting to schedules page...'}), 200
+    
+@app.route('/upload/schedule/<name>', methods=['PUT']) #Edit a schedule
+def edit_schedule(name):
+    global scheduleshash
+    data = request.get_json()
+
+    # Check if the name exists
+    if name not in scheduleshash:
+        return jsonify({'message': 'Name not found.'}), 404
+
+    # Extract new data
+    new_name = data.get('name')
+    new_schedule = data.get('schedule')
+
+    if new_name != name and new_name in scheduleshash:
+        return jsonify({'message': 'Schedule for this cat already exists! Try again.'}), 409
+    else:
+        scheduleshash.pop(name)
+        scheduleshash[new_name] = new_schedule
+        return jsonify({'message': 'Schedule updated! Redirecting to schedules page...'}), 200
+    
+@app.route('/subscribe/schedules', methods=['GET']) #Get all cats
+def subscribe_all_schedules():
+    global scheduleshash
+    return jsonify(scheduleshash), 200
+
+@app.route('/subscribe/schedules/<name>', methods=['GET']) #Get single schedule
+def subscribe_single_schedule(name):
+    global scheduleshash
+    # Check if the name exists in scheduleshash
+    if name not in scheduleshash:
+        return jsonify({'message': f'Name {name} not found.'}), 404
+
+    return jsonify({name: scheduleshash[name]}), 200
+
+@app.route('/subscribe/cats', methods=['GET']) #Get all cats
 def subscribe_all_cats():
     global catshash
     return jsonify(catshash), 200
 
-@app.route('/subscribe/cats/<breed>', methods=['GET'])
+
+@app.route('/subscribe/cats/<breed>', methods=['GET']) #Get single cat
 def subscribe_single_cat(breed):
     global catshash
-    print(breed)
     # Check if the breed exists in catshash
     if breed not in catshash:
         return jsonify({'message': f'Breed {breed} not found.'}), 404
 
     return jsonify({breed: catshash[breed]}), 200
 
+@app.route('/delete/schedule/<name>', methods=['DELETE']) #Delete a schedule
+def delete_schedule(name):
+    global scheduleshash
+    if name in scheduleshash:
+        scheduleshash.pop(name)
+        return jsonify({'message': 'Schedule deleted! Redirecting to schedules page...'}), 200
+    else:
+        return jsonify({'message': 'Name not found.'}), 404
 
-@app.route('/upload/feed', methods=['POST'])
-def upload_feed():
-    global breed, kibble, ftime
-    data = request.get_json()
-    breed = data.get('breed')
-    kibble = data.get('kibble')
-    ftime = data.get('time')
-    feedhash[ftime] = [breed, kibble]
-    return jsonify({'message': 'Data received! Feed another Cat!'}), 200
-
-@app.route('/upload/cat', methods=['POST'])
+@app.route('/upload/cat', methods=['POST']) #Upload a cat
 def upload_cat():
     global catshash
     data = request.get_json()
@@ -137,7 +198,7 @@ def upload_cat():
         print(catshash)
         return jsonify({'message': 'Cat added! Redirecting to cats page...'}), 200
     
-@app.route('/upload/cat/<breed>', methods=['PUT'])
+@app.route('/upload/cat/<breed>', methods=['PUT']) #Edit a cat
 def edit_cat(breed):
     global catshash
     data = request.get_json()
@@ -159,16 +220,30 @@ def edit_cat(breed):
         catshash[new_breed] = new_name
         return jsonify({'message': 'Cat updated! Redirecting to cats page...'}), 200
     
-@app.route('/delete/cat/<breed>', methods=['DELETE'])
+@app.route('/delete/cat/<breed>', methods=['DELETE']) #Delete a cat
 def delete_cat(breed):
     global catshash
     if breed in catshash:
+        if catshash[breed] in scheduleshash:
+            scheduleshash.pop(catshash[breed])
         catshash.pop(breed)
         return jsonify({'message': 'Cat deleted! Redirecting to cats page...'}), 200
     else:
         return jsonify({'message': 'Breed not found.'}), 404
+    
+    
+@app.route('/stream/schedule', methods=['GET'])  # Stream schedule status
+def stream_schedule():
+    def event_stream():
+        import json
+        while True:
+            # Serialize scheduleshash manually
+            yield f"data: {json.dumps(scheduleshash)}\n\n"
+            time.sleep(2)  # Send updates every 2 seconds
+
+    return app.response_class(event_stream(), mimetype='text/event-stream')
 
  
 if __name__ == '__main__':
     #start_receiver_thread()
-    app.run(debug=True)
+    app.run(debug=True, threaded=True)

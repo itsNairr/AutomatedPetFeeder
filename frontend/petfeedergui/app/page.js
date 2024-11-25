@@ -49,10 +49,10 @@ export default function Home() {
           <Link className="flex flex-row items-center gap-3" href={"/cats"}>
             View Your Cats <MdOutlineArrowForwardIos />
           </Link>
-          <Link className="flex flex-row items-center gap-3" href={"/upcoming"}>
+          <Link className="flex flex-row items-center gap-3" href={"/schedules"}>
             View Your Schedules <MdOutlineArrowForwardIos />
           </Link>
-          <Link className="flex flex-row items-center gap-3" href={"/upcoming"}>
+          <Link className="flex flex-row items-center gap-3" href={"/status"}>
             View Pet Feeder Status <MdOutlineArrowForwardIos />
           </Link>
         </div>

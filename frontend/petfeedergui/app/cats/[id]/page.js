@@ -54,7 +54,14 @@ function EditCats({ params }) {
 
 
   const handleSubmit = async (event) => {
-    event.preventDefault();
+    event.preventDefault(); // Prevent default form submission
+  
+    const form = event.target;
+    
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
     document.getElementById("update").style.display = "none";
     setVal("Processing...");
     try {

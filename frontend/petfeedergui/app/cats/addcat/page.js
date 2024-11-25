@@ -11,7 +11,14 @@ function AddCat() {
   const [val, setVal] = useState("Add your cat!");
 
   const handleSubmit = async (event) => {
-    event.preventDefault();
+    event.preventDefault(); // Prevent default form submission
+  
+    const form = event.target;
+    
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
     document.getElementById("submit").style.display = "none";
     setVal("Processing...");
     try {
@@ -131,6 +138,7 @@ function AddCat() {
             {cat && breed && (
               <button
                 id="submit"
+                type="submit"
                 onClick={handleSubmit}
                 className="bg-[#b90e31] w-[50%] h-[40px] mt-5 rounded-lg"
               >
